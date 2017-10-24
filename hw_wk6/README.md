@@ -28,9 +28,6 @@ d = datetime.datetime.today()
 now = (d.strftime('%m/%d/%Y'))
 ```
 
-    Please enter your OpenWeather API key: 5c054ddbd58eca2ada6575729a0313df
-
-
 
 ```python
 path = 'Resources/citipy-0.0.5/citipy/worldcities.csv'
