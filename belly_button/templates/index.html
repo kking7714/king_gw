@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Belly Buttons</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" />
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.7.3/d3.min.js"></script>
+</head>
+<body>
+
+    <div class="bg">
+    <div class="jumbotron">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8 col-md-offset-2">
+                    <h1 class="display-3 text-center">Belly Button Biodiversity Dashboard</h1>
+                    <p class="text-center">
+                        Use the interactive charts below to explore the dataset
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <div class = "container">
+        <div class="row">
+            <div class = "col-md-2">
+                <select id="selDataset" onchange="optionChanged(this.value)">       
+                </select>
+            </div>
+        </div>
+        <br>
+        <div class="row">
+            <div class = "col-md-2">
+                <!-- <br> -->
+                <div id = "info-table">
+                    <div class="panel-group">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">Sample MetaData</div>
+                        </div>
+                    </div>
+                        <div class="panel-body">
+                            <p>AGE: 24</p>
+                            <p>BBTYPE: I</p>
+                            <p>ETHNICITY: Caucasian</p>
+                            <p>GENDER: F</p>
+                            <p>LOCATION: Beaufort/NC</p>
+                            <p>SAMPLEID: 940</p>
+                        </div>
+                    </div>
+                </div>
+                <div class = "col-md-4">
+                        <div id="pie-chart"></div>
+            </div>
+
+        </div>
+
+        <div class = "row">
+            <br>
+            <div class = "col">
+                <div id="bubble-target"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+            function getNames() {
+                Plotly.d3.json("/names", function(err, data){
+                console.log(data);
+                for (i=0; i < data.length; i++){
+                    var opt = data[i]
+                    select = document.getElementById("selDataset");
+                    var opt_create = document.createElement("option");
+                    opt_create.textContent = opt;
+                    opt_create.value = opt;
+                    select.appendChild(opt_create);
+                }
+            })
+        }
+
+
+            function build_pie(data, d, selValtext){
+                // otu ids as labels for pie chart
+                var otus = data[0].otu_ids.slice(0,10);;
+                // samples as values for pie chart
+                var samples = data[1].sample_values.slice(0,10);
+                var update = { title: "OTU Plot for: " + selValtext,
+                    height: 600,
+                    width: 600,
+                    hovermode:"closest"};
+                Plotly.restyle("pie-chart", "values", [samples]);
+                Plotly.restyle("pie-chart", "labels", [otus]);
+                Plotly.restyle("pie-chart", "hovertext", [desc]);
+                Plotly.relayout("pie-chart", update);
+                console.log(samples, otus);
+                desc = [];
+                    for (i=0; i< 10; i++){
+                        var otu = otus[i];
+                        var description = d[otu];
+                        desc.push(description);
+                    };
+                console.log(desc);
+                var pieData = [{
+                    values: samples,
+                    labels: otus,
+                    hovertext: desc,
+                    type: "pie"
+                }];
+                var layout = {
+                    title: "OTU Plot for: " + selValtext,
+                    height: 600,
+                    width: 600,
+                    hovermode:"closest"
+                };
+                Plotly.plot("pie-chart", pieData, layout)
+            }
+            function build_scatter(data, d, selValtext){
+                // top ten otu ids as x values
+                var otus = data[0].otu_ids.slice(0,10);;
+                // top ten samples as y values 
+                var samples = data[1].sample_values.slice(0,10);
+                // otu descriptions added to text values
+                var desc = [];
+                    for (i=0; i< 10; i++){
+                        var otu = otus[i];
+                        var description = d[otu];
+                        desc.push(description);
+                    };
+                var update = { title: "OTU Plot for: " + selValtext,
+                xaxis: {
+                    title: "OTU ID"
+                },
+                yaxis: {
+                    title: "Sample Count"
+                },
+                height: 600,
+                width: 800,
+                showline: false,};
+
+                Plotly.restyle("bubble-target", "y", [samples]);
+                Plotly.restyle("bubble-target", "x", [otus]);
+                Plotly.restyle("bubble-target", "text", [desc]);
+                Plotly.relayout("bubble-target", update);
+                var bubbleData = [{
+                    x: otus,
+                    y: samples,
+                    mode: "markers",
+                    text: desc,
+                    marker: {
+                        size: samples
+                    }
+                }];
+                var bubbleLay = {
+                    title: "OTU Plot for: " + selValtext,
+                    xaxis: {
+                        title: "OTU ID"
+                    },
+                    yaxis: {
+                        title: "Sample Count"
+                    },
+                    height: 600,
+                    width: 800,
+                    showline: false,
+                };
+                Plotly.newPlot("bubble-target", bubbleData, bubbleLay);
+            }
+            function build_table(meta){
+                    var age = meta.AGE;
+                    var type = meta.BBTYPE;
+                    var ethnic = meta.ETHNICITY;
+                    var gender = meta.GENDER;
+                    var loc = meta.LOCATION;
+                    var id = meta.SAMPLEID;
+                    var tableDiv = d3.select("#info-table");
+                    tableDiv
+                    .append("div").attr("class","panel-group").append("div").attr("class", "panel panel-primary")
+                    .append("div").attr("class","panel-heading").text("Sample MetaData");
+
+                    var insert = tableDiv
+                    .append("div").attr("class","panel-body");
+                    
+                    insert.append("p").text("AGE: " + age);
+                    insert.append("p").text("BBTYPE: " + type);
+                    insert.append("p").text("ETHNICITY: " + ethnic);
+                    insert.append("p").text("GENDER: " + gender);
+                    insert.append("p").text("LOCATION: " + loc);
+                    insert.append("p").text("SAMPLEID: " + id);
+            }
+
+            function optionChanged(){
+                var eID = document.getElementById("selDataset");
+                var selVal = eID.options[eID.selectedIndex].value;
+                var selValtext = eID.options[eID.selectedIndex].text;
+                d3.select("#info-table").selectAll("div").remove();
+                Plotly.d3.json("/samples/" + selValtext, function(error,data){
+                    if (error) return console.warn(error);
+                    var otus = data[0].otu_ids.slice(0,10);;
+                    Plotly.d3.json("/otu", function(error,d){
+                    if (error) return console.warn(error);
+                    build_pie(data, d, selValtext);
+                    build_scatter(data,d, selValtext);
+                })
+                })
+                Plotly.d3.json("/metadata/" + selValtext, function(error, meta){
+                    if (error) return console.warn(error);
+                    build_table(meta);
+                })
+                Plotly.d3.json("/wfreq/" + selValtext, function(error, wash){
+                    if (error) return console.warn(error);
+                    build_gauge(wash);
+                })
+            }
+
+                function build_1st_pie(){
+                Plotly.d3.json("/samples/BB_940", function(error,data){
+                if (error) return console.warn(error);
+                var otus = data[0].otu_ids.slice(0,10);;
+                Plotly.d3.json("/otu", function(error,d){
+                if (error) return console.warn(error);
+                // otu ids as labels for pie chart
+                var otus = data[0].otu_ids.slice(0,10);;
+                // samples as values for pie chart
+                var samples = data[1].sample_values.slice(0,10);
+                console.log(samples, otus);
+                desc = [];
+                    for (i=0; i< 10; i++){
+                        var otu = otus[i];
+                        var description = d[otu];
+                        desc.push(description);
+                    };
+                console.log(desc);
+                var pieData = [{
+                    values: samples,
+                    labels: otus,
+                    hovertext: desc,
+                    type: "pie"
+                }];
+                var layout = {
+                    title: "OTU Plot for: BB_940",
+                    height: 600,
+                    width: 600,
+                    hovermode:"closest"
+                };
+                Plotly.plot("pie-chart", pieData, layout)})})}
+
+            function build_1st_scatter(){
+                Plotly.d3.json("/samples/BB_940", function(error,data){
+                if (error) return console.warn(error);
+                var otus = data[0].otu_ids.slice(0,10);;
+                Plotly.d3.json("/otu", function(error,d){
+                if (error) return console.warn(error);
+                var samples = data[1].sample_values.slice(0,10);
+                var desc = [];
+                    for (i=0; i< 10; i++){
+                        var otu = otus[i];
+                        var description = d[otu];
+                        desc.push(description);
+                    };
+                var bubbleData = [{
+                    x: otus,
+                    y: samples,
+                    mode: "markers",
+                    text: desc,
+                    marker: {
+                        size: samples
+                    }
+                }];
+                var bubbleLay = {
+                    title: "OTU Plot for: BB_940",
+                    xaxis: {
+                        title: "OTU ID"
+                    },
+                    yaxis: {
+                        title: "Sample Count"
+                    },
+                    height: 600,
+                    width: 800,
+                    showline: false,
+                };
+                Plotly.newPlot("bubble-target", bubbleData, bubbleLay);
+            })})}
+
+            build_1st_pie();
+            build_1st_scatter();        
+            getNames();
+            
+    </script>
+</body>
+
+</html>
